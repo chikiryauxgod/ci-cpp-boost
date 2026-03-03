@@ -1,0 +1,2 @@
+/usr/bin/ar qc libservices.a CMakeFiles/services.dir/src/services/HashService.cpp.o CMakeFiles/services.dir/src/services/PrimeService.cpp.o
+/usr/bin/ranlib libservices.a

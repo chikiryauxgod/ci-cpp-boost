@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/server.dir/src/main.cpp.o -o server  libhttp.a libservices.a libcore.a /usr/lib/x86_64-linux-gnu/libboost_json.so.1.83.0 /usr/lib/x86_64-linux-gnu/libboost_container.so.1.83.0 /usr/lib/x86_64-linux-gnu/libboost_system.so.1.83.0 

@@ -1,0 +1,10 @@
+/home/lew/prog/ci-cpp-boost/build/CMakeFiles/core.dir
+/home/lew/prog/ci-cpp-boost/build/CMakeFiles/services.dir
+/home/lew/prog/ci-cpp-boost/build/CMakeFiles/http.dir
+/home/lew/prog/ci-cpp-boost/build/CMakeFiles/server.dir
+/home/lew/prog/ci-cpp-boost/build/CMakeFiles/edit_cache.dir
+/home/lew/prog/ci-cpp-boost/build/CMakeFiles/rebuild_cache.dir
+/home/lew/prog/ci-cpp-boost/build/CMakeFiles/list_install_components.dir
+/home/lew/prog/ci-cpp-boost/build/CMakeFiles/install.dir
+/home/lew/prog/ci-cpp-boost/build/CMakeFiles/install/local.dir
+/home/lew/prog/ci-cpp-boost/build/CMakeFiles/install/strip.dir
