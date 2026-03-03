@@ -19,12 +19,12 @@ void HttpSession::Run() {
 }
 
 void HttpSession::DoRead() {
-    req_ = {};
+    parser_.body_limit(16 * 1024); // 16 KB лимит
 
     http::async_read(
         stream_,
         buffer_,
-        req_,
+        parser_,
         beast::bind_front_handler(
             &HttpSession::OnRead,
             shared_from_this()));
@@ -40,14 +40,16 @@ void HttpSession::OnRead(beast::error_code ec,
         return;
     }
 
+    auto req = parser_.release();
+
     if (ec) {
         return;
     }
     try {
-        res_ = router_.Route(req_);
+        res_ = router_.Route(req);
     }
     catch(const std::exception& e) {
-        res_ = MakeInternalError(req_, e.what());
+        res_ = MakeInternalError(req, e.what());
     }
     
 

@@ -23,7 +23,7 @@ private:
     http::response<http::string_body> res_;
     boost::beast::tcp_stream stream_;
     boost::beast::flat_buffer buffer_;
-    boost::beast::http::request<boost::beast::http::string_body> req_;
+    http::request_parser<http::string_body> parser_;
     const Router& router_;
 
     http::response<http::string_body> MakeInternalError(const http::request<http::string_body>& req,

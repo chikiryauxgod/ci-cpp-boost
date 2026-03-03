@@ -11,4 +11,5 @@ public:
 
 private:
     std::vector<std::shared_ptr<IHandler>> handlers_;
+    http::response<http::string_body> MakeNotFound(const http::request<http::string_body>& req) const;
 };
