@@ -12,6 +12,10 @@ void HttpServer::Run() {
     DoAccept();
 }
 
+unsigned short HttpServer::Port() const {
+    return acceptor_.local_endpoint().port();
+}
+
 void HttpServer::DoAccept() {
     acceptor_.async_accept(
         [this](boost::system::error_code ec,

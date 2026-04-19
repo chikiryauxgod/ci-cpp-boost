@@ -1,13 +1,19 @@
 #pragma once
-#include <iostream>
 #include "../core/IHandler.hpp"
 #include "../services/IHashService.hpp"
 #include <boost/json.hpp>
+#include <memory>
+#include <stdexcept>
+#include <string_view>
 
 class HashHandler final : public IHandler {
 public:
     explicit HashHandler(std::shared_ptr<IHashService> service)
-        : service_(std::move(service)) {}
+        : service_(std::move(service)) {
+        if (!service_) {
+            throw std::invalid_argument("Hash service must not be null");
+        }
+    }
 
     ~HashHandler() override = default;
 

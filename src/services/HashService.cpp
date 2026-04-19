@@ -1,5 +1,7 @@
 #include "HashService.hpp"
 #include <boost/uuid/detail/sha1.hpp>
+
+#include <iomanip>
 #include <sstream>
 
 std::string HashService::Hash(const std::string& input) const {
@@ -11,7 +13,8 @@ std::string HashService::Hash(const std::string& input) const {
 
     std::ostringstream os;
     for (auto d : digest) {
-        os << std::hex << d;
+        os << std::hex << std::setw(8) << std::setfill('0') << d;
     }
+
     return os.str();
 }

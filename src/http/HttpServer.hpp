@@ -9,6 +9,7 @@ public:
                const Router& router);
 
     void Run();
+    [[nodiscard]] unsigned short Port() const;
 
 private:
     void DoAccept();

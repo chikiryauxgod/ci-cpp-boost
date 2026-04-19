@@ -1,25 +1,31 @@
 #include "PrimeService.hpp"
 
+#include <cstddef>
+
 std::vector<int> PrimeService::Calculate(int n) const {
     if (n < 2) {
         return {};
     }
 
-    std::vector<bool> sieve(n + 1, true);
+    const auto limit = static_cast<std::size_t>(n);
+
+    std::vector<bool> sieve(limit + 1, true);
     sieve[0] = sieve[1] = false;
 
-    for (int i = 2; i * i <= n; ++i) {
+    for (std::size_t i = 2; i * i <= limit; ++i) {
         if (sieve[i]) {
-            for (int j = i * i; j <= n; j += i) {
+            for (std::size_t j = i * i; j <= limit; j += i) {
                 sieve[j] = false;
             }
         }
     }
 
     std::vector<int> result;
-    for (int i = 2; i <= n; ++i) {
+    result.reserve(limit / 2);
+
+    for (std::size_t i = 2; i <= limit; ++i) {
         if (sieve[i]) {
-            result.push_back(i);
+            result.push_back(static_cast<int>(i));
         }
     }
 
