@@ -1,5 +1,6 @@
 #include "core/Router.hpp"
 #include "handlers/HashHandler.hpp"
+#include "handlers/PrimeHandler.hpp"
 #include "http/HttpServer.hpp"
 #include "services/HashService.hpp"
 #include "services/PrimeService.hpp"
@@ -59,12 +60,25 @@ http::request<http::string_body> MakeHashRequest(
     return req;
 }
 
+http::request<http::string_body> MakePrimeRequest(
+    std::string body,
+    bool keep_alive = true) {
+    http::request<http::string_body> req{http::verb::post, "/primes", 11};
+    req.set(http::field::content_type, "application/json");
+    req.keep_alive(keep_alive);
+    req.body() = std::move(body);
+    req.prepare_payload();
+    return req;
+}
+
 class TestServer {
 public:
     TestServer()
         : workGuard_(asio::make_work_guard(ioc_)),
           hashService_(std::make_shared<HashService>()),
+          primeService_(std::make_shared<PrimeService>()),
           server_(ioc_, 0, router_) {
+        router_.AddHandler(std::make_shared<PrimeHandler>(primeService_));
         router_.AddHandler(std::make_shared<HashHandler>(hashService_));
         server_.Run();
         thread_ = std::thread([this] {
@@ -89,6 +103,7 @@ private:
     asio::io_context ioc_{1};
     asio::executor_work_guard<asio::io_context::executor_type> workGuard_;
     std::shared_ptr<HashService> hashService_;
+    std::shared_ptr<PrimeService> primeService_;
     HttpServer server_;
     std::thread thread_;
 };
@@ -162,6 +177,38 @@ void TestHashHandlerRejectsNullService() {
     Expect(thrown, "HashHandler should reject null service");
 }
 
+void TestPrimeHandlerValidatesInput() {
+    auto service = std::make_shared<PrimeService>();
+    PrimeHandler handler(service);
+
+    const auto invalidJsonResponse = handler.Handle(MakePrimeRequest("{not-json}"));
+    Expect(
+        invalidJsonResponse.result() == http::status::bad_request,
+        "PrimeHandler should reject invalid JSON");
+
+    const auto missingFieldResponse = handler.Handle(MakePrimeRequest(R"({"value":10})"));
+    Expect(
+        missingFieldResponse.result() == http::status::bad_request,
+        "PrimeHandler should reject missing n field");
+
+    const auto negativeResponse = handler.Handle(MakePrimeRequest(R"({"n":-1})"));
+    Expect(
+        negativeResponse.result() == http::status::bad_request,
+        "PrimeHandler should reject negative n");
+}
+
+void TestPrimeHandlerRejectsNullService() {
+    bool thrown = false;
+
+    try {
+        PrimeHandler handler(nullptr);
+    } catch (const std::invalid_argument&) {
+        thrown = true;
+    }
+
+    Expect(thrown, "PrimeHandler should reject null service");
+}
+
 void TestHttpServerHandlesKeepAliveRequests() {
     TestServer server;
 
@@ -224,6 +271,36 @@ void TestHttpServerRejectsOversizedPayload() {
         "Oversized request should return 413");
 }
 
+void TestHttpServerReturnsPrimes() {
+    TestServer server;
+
+    asio::io_context clientIoc;
+    tcp::resolver resolver(clientIoc);
+    beast::tcp_stream stream(clientIoc);
+
+    const auto endpoints =
+        resolver.resolve("127.0.0.1", std::to_string(server.Port()));
+    stream.connect(endpoints);
+
+    beast::flat_buffer buffer;
+
+    const auto res = RoundTrip(
+        stream.socket(),
+        buffer,
+        MakePrimeRequest(R"({"n":10})", false));
+
+    Expect(res.result() == http::status::ok, "Prime endpoint should return 200");
+
+    const auto body = boost::json::parse(res.body()).as_object();
+    const auto& primes = body.at("primes").as_array();
+
+    Expect(primes.size() == 4, "Prime endpoint should return four primes up to 10");
+    Expect(primes[0].as_int64() == 2, "First prime should be 2");
+    Expect(primes[1].as_int64() == 3, "Second prime should be 3");
+    Expect(primes[2].as_int64() == 5, "Third prime should be 5");
+    Expect(primes[3].as_int64() == 7, "Fourth prime should be 7");
+}
+
 }  // namespace
 
 int main() {
@@ -233,8 +310,11 @@ int main() {
         {"Router 404", TestRouterReturns404ForUnknownRoute},
         {"HashHandler validation", TestHashHandlerValidatesInput},
         {"HashHandler null service", TestHashHandlerRejectsNullService},
+        {"PrimeHandler validation", TestPrimeHandlerValidatesInput},
+        {"PrimeHandler null service", TestPrimeHandlerRejectsNullService},
         {"HttpServer keep-alive", TestHttpServerHandlesKeepAliveRequests},
         {"HttpServer oversized payload", TestHttpServerRejectsOversizedPayload},
+        {"HttpServer primes endpoint", TestHttpServerReturnsPrimes},
     };
 
     for (const auto& [name, test] : tests) {

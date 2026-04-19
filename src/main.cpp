@@ -1,5 +1,7 @@
 #include "http/HttpServer.hpp"
+#include "services/PrimeService.hpp"
 #include "services/HashService.hpp"
+#include "handlers/PrimeHandler.hpp"
 #include "handlers/HashHandler.hpp"
 #include <algorithm>
 #include <csignal>
@@ -17,8 +19,11 @@ int main() {
     });
 
     auto hash_service = std::make_shared<HashService>();
+    auto prime_service = std::make_shared<PrimeService>();
 
     Router router;
+    router.AddHandler(
+        std::make_shared<PrimeHandler>(prime_service));
     router.AddHandler(
         std::make_shared<HashHandler>(hash_service));
     
