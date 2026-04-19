@@ -1,6 +1,7 @@
 #include "core/AppConfig.hpp"
 #include "core/Router.hpp"
 #include "handlers/HashHandler.hpp"
+#include "handlers/HealthHandler.hpp"
 #include "handlers/PrimeHandler.hpp"
 #include "http/HttpServer.hpp"
 #include "services/HashService.hpp"
@@ -73,6 +74,12 @@ http::request<http::string_body> MakePrimeRequest(
     return req;
 }
 
+http::request<http::string_body> MakeHealthRequest(bool keep_alive = true) {
+    http::request<http::string_body> req{http::verb::get, "/health", 11};
+    req.keep_alive(keep_alive);
+    return req;
+}
+
 class TestServer {
 public:
     explicit TestServer(std::size_t body_limit_bytes = 16 * 1024)
@@ -80,6 +87,7 @@ public:
           hashService_(std::make_shared<HashService>()),
           primeService_(std::make_shared<PrimeService>()),
           server_(ioc_, 0, router_, body_limit_bytes) {
+        router_.AddHandler(std::make_shared<HealthHandler>());
         router_.AddHandler(std::make_shared<PrimeHandler>(primeService_));
         router_.AddHandler(std::make_shared<HashHandler>(hashService_));
         server_.Run();
@@ -230,6 +238,20 @@ void TestRouterReturns404ForUnknownRoute() {
         boost::json::value_to<std::string>(body.at("error")),
         "Not Found",
         "Router should serialize not found response");
+}
+
+void TestHealthHandlerReturnsOk() {
+    HealthHandler handler;
+
+    const auto res = handler.Handle(MakeHealthRequest(false));
+    Expect(res.result() == http::status::ok,
+           "HealthHandler should return 200");
+
+    const auto body = boost::json::parse(res.body()).as_object();
+    ExpectStringEqual(
+        boost::json::value_to<std::string>(body.at("status")),
+        "ok",
+        "HealthHandler should return ok status");
 }
 
 void TestHashHandlerValidatesInput() {
@@ -383,6 +405,33 @@ void TestHttpServerReturnsPrimes() {
     Expect(primes[3].as_int64() == 7, "Fourth prime should be 7");
 }
 
+void TestHttpServerReturnsHealth() {
+    TestServer server;
+
+    asio::io_context clientIoc;
+    tcp::resolver resolver(clientIoc);
+    beast::tcp_stream stream(clientIoc);
+
+    const auto endpoints =
+        resolver.resolve("127.0.0.1", std::to_string(server.Port()));
+    stream.connect(endpoints);
+
+    beast::flat_buffer buffer;
+
+    const auto res = RoundTrip(
+        stream.socket(),
+        buffer,
+        MakeHealthRequest(false));
+
+    Expect(res.result() == http::status::ok, "Health endpoint should return 200");
+
+    const auto body = boost::json::parse(res.body()).as_object();
+    ExpectStringEqual(
+        boost::json::value_to<std::string>(body.at("status")),
+        "ok",
+        "Health endpoint should return ok status");
+}
+
 }  // namespace
 
 int main() {
@@ -393,6 +442,7 @@ int main() {
         {"AppConfig environment", TestAppConfigReadsEnvironment},
         {"AppConfig invalid environment", TestAppConfigRejectsInvalidEnvironment},
         {"Router 404", TestRouterReturns404ForUnknownRoute},
+        {"HealthHandler response", TestHealthHandlerReturnsOk},
         {"HashHandler validation", TestHashHandlerValidatesInput},
         {"HashHandler null service", TestHashHandlerRejectsNullService},
         {"PrimeHandler validation", TestPrimeHandlerValidatesInput},
@@ -400,6 +450,7 @@ int main() {
         {"HttpServer keep-alive", TestHttpServerHandlesKeepAliveRequests},
         {"HttpServer oversized payload", TestHttpServerRejectsOversizedPayload},
         {"HttpServer primes endpoint", TestHttpServerReturnsPrimes},
+        {"HttpServer health endpoint", TestHttpServerReturnsHealth},
     };
 
     for (const auto& [name, test] : tests) {

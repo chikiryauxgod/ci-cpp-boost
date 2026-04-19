@@ -3,6 +3,7 @@
 #include "services/PrimeService.hpp"
 #include "services/HashService.hpp"
 #include "handlers/PrimeHandler.hpp"
+#include "handlers/HealthHandler.hpp"
 #include "handlers/HashHandler.hpp"
 #include <algorithm>
 #include <csignal>
@@ -24,6 +25,7 @@ int main() {
     auto prime_service = std::make_shared<PrimeService>();
 
     Router router;
+    router.AddHandler(std::make_shared<HealthHandler>());
     router.AddHandler(
         std::make_shared<PrimeHandler>(prime_service));
     router.AddHandler(
