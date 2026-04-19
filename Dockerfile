@@ -1,4 +1,3 @@
-# ---------- BUILD STAGE ----------
 FROM ubuntu:24.04 AS builder
 
 RUN apt-get update && apt-get install -y \
@@ -14,13 +13,16 @@ COPY . .
 RUN cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build -j
 
-# ---------- RUNTIME STAGE ----------
+FROM builder AS test
+
+RUN ctest --test-dir build --output-on-failure
+
 FROM ubuntu:24.04
 
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    libboost-all-dev \
+    ca-certificates \
+    libboost-json1.83.0 \
+    libboost-system1.83.0 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m appuser

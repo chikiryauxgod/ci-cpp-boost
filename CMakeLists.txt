@@ -4,6 +4,7 @@ project(ci_boost_server
     VERSION 1.0.0
     LANGUAGES CXX)
 
+include(CTest)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,6 +27,7 @@ target_compile_options(project_warnings INTERFACE
 find_package(Boost 1.74 REQUIRED COMPONENTS system json)
 
 add_library(core
+    src/core/AppConfig.cpp
     src/core/Router.cpp
 )
 
@@ -46,6 +48,11 @@ add_library(services
     src/services/PrimeService.cpp
 )
 
+target_include_directories(services
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/src
+)
+
 target_link_libraries(services
     PUBLIC
         project_warnings
@@ -54,6 +61,11 @@ target_link_libraries(services
 add_library(http
     src/http/HttpSession.cpp
     src/http/HttpServer.cpp
+)
+
+target_include_directories(http
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/src
 )
 
 target_link_libraries(http
@@ -75,6 +87,22 @@ target_link_libraries(server
 
 find_package(Threads REQUIRED)
 target_link_libraries(server PRIVATE Threads::Threads)
+
+if(BUILD_TESTING)
+    add_executable(server_tests
+        tests/TestMain.cpp
+    )
+
+    target_link_libraries(server_tests
+        PRIVATE
+            core
+            http
+            services
+            Threads::Threads
+    )
+
+    add_test(NAME server_tests COMMAND server_tests)
+endif()
 
 install(TARGETS server
     RUNTIME DESTINATION bin

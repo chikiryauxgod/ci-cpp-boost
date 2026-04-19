@@ -1,52 +1,66 @@
 #pragma once
+
 #include "../core/IHandler.hpp"
-#include "../services/IHashService.hpp"
+#include "../services/IPrimeService.hpp"
+
 #include <boost/json.hpp>
+
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string_view>
 
-class HashHandler final : public IHandler {
+class PrimeHandler final : public IHandler {
 public:
-    explicit HashHandler(std::shared_ptr<IHashService> service)
+    explicit PrimeHandler(std::shared_ptr<IPrimeService> service)
         : service_(std::move(service)) {
         if (!service_) {
-            throw std::invalid_argument("Hash service must not be null");
+            throw std::invalid_argument("Prime service must not be null");
         }
     }
 
-    ~HashHandler() override = default;
+    ~PrimeHandler() override = default;
 
     bool CanHandle(const http::request<http::string_body>& req) const override {
         return req.method() == http::verb::post &&
-               req.target() == "/hash";
+               req.target() == "/primes";
     }
 
     http::response<http::string_body>
     Handle(const http::request<http::string_body>& req) const override {
-
         boost::json::error_code ec;
-        auto body = boost::json::parse(req.body(), ec);
+        const auto body = boost::json::parse(req.body(), ec);
 
         if (ec || !body.is_object()) {
             return MakeError(req, http::status::bad_request, "Invalid JSON");
         }
 
-        auto& obj = body.as_object();
-        auto it = obj.find("input");
+        const auto& obj = body.as_object();
+        const auto it = obj.find("n");
 
-        if (it == obj.end() || !it->value().is_string()) {
+        if (it == obj.end() || !it->value().is_int64()) {
             return MakeError(req, http::status::bad_request,
-                             "Missing field 'input'");
+                             "Missing field 'n'");
         }
 
-        std::string input =
-            boost::json::value_to<std::string>(it->value());
+        const std::int64_t raw = it->value().as_int64();
+        if (raw < 0 ||
+            raw > static_cast<std::int64_t>(std::numeric_limits<int>::max())) {
+            return MakeError(req, http::status::bad_request,
+                             "Field 'n' is out of range");
+        }
 
-        auto result = service_->Hash(input);
+        const auto primes = service_->Calculate(static_cast<int>(raw));
+
+        boost::json::array values;
+        values.reserve(primes.size());
+        for (const int prime : primes) {
+            values.emplace_back(prime);
+        }
 
         boost::json::object response;
-        response["hash"] = result;
+        response["primes"] = std::move(values);
 
         http::response<http::string_body> res{
             http::status::ok, req.version()};
@@ -76,6 +90,5 @@ private:
         return res;
     }
 
-private:
-    std::shared_ptr<IHashService> service_;
+    std::shared_ptr<IPrimeService> service_;
 };

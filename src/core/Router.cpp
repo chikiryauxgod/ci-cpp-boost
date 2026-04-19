@@ -2,7 +2,9 @@
 #include <boost/json.hpp>
 
 void Router::AddHandler(std::shared_ptr<IHandler> handler) {
-    handlers_.push_back(std::move(handler));
+    if (handler) {
+        handlers_.push_back(std::move(handler));
+    }
 }
 
 http::response<http::string_body> Router::Route(const http::request<http::string_body>& req) const {
