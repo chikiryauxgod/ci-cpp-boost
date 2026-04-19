@@ -27,6 +27,7 @@ target_compile_options(project_warnings INTERFACE
 find_package(Boost 1.74 REQUIRED COMPONENTS system json)
 
 add_library(core
+    src/core/AppConfig.cpp
     src/core/Router.cpp
 )
 

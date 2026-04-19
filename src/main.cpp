@@ -1,3 +1,4 @@
+#include "core/AppConfig.hpp"
 #include "http/HttpServer.hpp"
 #include "services/PrimeService.hpp"
 #include "services/HashService.hpp"
@@ -9,6 +10,7 @@
 #include <vector>
 
 int main() {
+    const AppConfig config = LoadAppConfig();
     const unsigned int worker_count =
         std::max(1U, std::thread::hardware_concurrency());
 
@@ -27,7 +29,7 @@ int main() {
     router.AddHandler(
         std::make_shared<HashHandler>(hash_service));
     
-    HttpServer server(ioc, 8080, router);
+    HttpServer server(ioc, config.port, router, config.body_limit_bytes);
     server.Run();
 
     std::vector<std::thread> threads;

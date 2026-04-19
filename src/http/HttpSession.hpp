@@ -10,13 +10,12 @@ class HttpSession
 
 public:
     HttpSession(boost::asio::ip::tcp::socket socket,
-                const Router& router);
+                const Router& router,
+                std::size_t body_limit_bytes);
 
     void Run();
 
 private:
-    static constexpr std::size_t kBodyLimit = 16 * 1024;
-
     void DoRead();
     void DoClose();
     void OnRead(boost::beast::error_code ec,
@@ -29,6 +28,7 @@ private:
     boost::beast::flat_buffer buffer_;
     std::optional<http::request_parser<http::string_body>> parser_;
     const Router& router_;
+    std::size_t body_limit_bytes_;
 
     http::response<http::string_body> MakeInternalError(
         const http::request<http::string_body>& req) const;

@@ -9,9 +9,11 @@ namespace http = beast::http;
 namespace asio = boost::asio;
 
 HttpSession::HttpSession(asio::ip::tcp::socket socket,
-                         const Router& router)
+                         const Router& router,
+                         std::size_t body_limit_bytes)
     : stream_(std::move(socket)),
-      router_(router)
+      router_(router),
+      body_limit_bytes_(body_limit_bytes)
 {}
 
 void HttpSession::Run() {
@@ -20,7 +22,7 @@ void HttpSession::Run() {
 
 void HttpSession::DoRead() {
     parser_.emplace();
-    parser_->body_limit(kBodyLimit);
+    parser_->body_limit(body_limit_bytes_);
 
     http::async_read(
         stream_,

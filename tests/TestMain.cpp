@@ -1,3 +1,4 @@
+#include "core/AppConfig.hpp"
 #include "core/Router.hpp"
 #include "handlers/HashHandler.hpp"
 #include "handlers/PrimeHandler.hpp"
@@ -13,6 +14,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <cstdlib>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -73,11 +75,11 @@ http::request<http::string_body> MakePrimeRequest(
 
 class TestServer {
 public:
-    TestServer()
+    explicit TestServer(std::size_t body_limit_bytes = 16 * 1024)
         : workGuard_(asio::make_work_guard(ioc_)),
           hashService_(std::make_shared<HashService>()),
           primeService_(std::make_shared<PrimeService>()),
-          server_(ioc_, 0, router_) {
+          server_(ioc_, 0, router_, body_limit_bytes) {
         router_.AddHandler(std::make_shared<PrimeHandler>(primeService_));
         router_.AddHandler(std::make_shared<HashHandler>(hashService_));
         server_.Run();
@@ -119,6 +121,36 @@ http::response<http::string_body> RoundTrip(
     return res;
 }
 
+class ScopedEnvVar {
+public:
+    ScopedEnvVar(const char* name, const char* value)
+        : name_(name) {
+        if (const char* current = std::getenv(name_)) {
+            has_old_value_ = true;
+            old_value_ = current;
+        }
+
+        if (value) {
+            setenv(name_, value, 1);
+        } else {
+            unsetenv(name_);
+        }
+    }
+
+    ~ScopedEnvVar() {
+        if (has_old_value_) {
+            setenv(name_, old_value_.c_str(), 1);
+        } else {
+            unsetenv(name_);
+        }
+    }
+
+private:
+    const char* name_;
+    bool has_old_value_ = false;
+    std::string old_value_;
+};
+
 void TestHashServiceProducesCanonicalSha1() {
     HashService service;
     ExpectStringEqual(
@@ -133,6 +165,56 @@ void TestPrimeServiceCalculatesPrimes() {
     const std::vector<int> expected{2, 3, 5, 7};
     Expect(service.Calculate(10) == expected, "PrimeService should return primes up to 10");
     Expect(service.Calculate(1).empty(), "PrimeService should return empty result below 2");
+}
+
+void TestAppConfigUsesDefaults() {
+    ScopedEnvVar port("APP_PORT", nullptr);
+    ScopedEnvVar limit("APP_BODY_LIMIT_BYTES", nullptr);
+
+    const auto config = LoadAppConfig();
+
+    Expect(config.port == 8080, "Default port should be 8080");
+    Expect(config.body_limit_bytes == 16 * 1024,
+           "Default body limit should be 16 KiB");
+}
+
+void TestAppConfigReadsEnvironment() {
+    ScopedEnvVar port("APP_PORT", "9090");
+    ScopedEnvVar limit("APP_BODY_LIMIT_BYTES", "4096");
+
+    const auto config = LoadAppConfig();
+
+    Expect(config.port == 9090, "Config should read APP_PORT");
+    Expect(config.body_limit_bytes == 4096,
+           "Config should read APP_BODY_LIMIT_BYTES");
+}
+
+void TestAppConfigRejectsInvalidEnvironment() {
+    {
+        ScopedEnvVar port("APP_PORT", "0");
+        bool thrown = false;
+
+        try {
+            static_cast<void>(LoadAppConfig());
+        } catch (const std::runtime_error&) {
+            thrown = true;
+        }
+
+        Expect(thrown, "Config should reject APP_PORT=0");
+    }
+
+    {
+        ScopedEnvVar limit("APP_BODY_LIMIT_BYTES", "invalid");
+        bool thrown = false;
+
+        try {
+            static_cast<void>(LoadAppConfig());
+        } catch (const std::runtime_error&) {
+            thrown = true;
+        }
+
+        Expect(thrown, "Config should reject invalid APP_BODY_LIMIT_BYTES");
+    }
 }
 
 void TestRouterReturns404ForUnknownRoute() {
@@ -248,7 +330,7 @@ void TestHttpServerHandlesKeepAliveRequests() {
 }
 
 void TestHttpServerRejectsOversizedPayload() {
-    TestServer server;
+    TestServer server(1024);
 
     asio::io_context clientIoc;
     tcp::resolver resolver(clientIoc);
@@ -307,6 +389,9 @@ int main() {
     const std::vector<std::pair<std::string, std::function<void()>>> tests{
         {"HashService canonical SHA-1", TestHashServiceProducesCanonicalSha1},
         {"PrimeService primes", TestPrimeServiceCalculatesPrimes},
+        {"AppConfig defaults", TestAppConfigUsesDefaults},
+        {"AppConfig environment", TestAppConfigReadsEnvironment},
+        {"AppConfig invalid environment", TestAppConfigRejectsInvalidEnvironment},
         {"Router 404", TestRouterReturns404ForUnknownRoute},
         {"HashHandler validation", TestHashHandlerValidatesInput},
         {"HashHandler null service", TestHashHandlerRejectsNullService},
