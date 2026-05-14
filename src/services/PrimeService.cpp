@@ -1,4 +1,4 @@
-#include "PrimeService.hpp"
+#include "services/PrimeService.hpp"
 
 #include <cstddef>
 

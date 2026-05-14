@@ -1,6 +1,8 @@
 #pragma once
+
+#include "core/Router.hpp"
+
 #include <boost/asio.hpp>
-#include "../core/Router.hpp"
 
 class HttpServer {
 public:

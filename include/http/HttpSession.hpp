@@ -1,7 +1,9 @@
 #pragma once
-#include <boost/beast.hpp>
+
+#include "core/Router.hpp"
+
 #include <boost/asio.hpp>
-#include "../core/Router.hpp"
+#include <boost/beast.hpp>
 
 #include <optional>
 
@@ -21,8 +23,8 @@ private:
     void OnRead(boost::beast::error_code ec,
                 std::size_t bytes);
     void OnWrite(boost::beast::error_code ec,
-                std::size_t bytes);
-    
+                 std::size_t bytes);
+
     http::response<http::string_body> res_;
     boost::beast::tcp_stream stream_;
     boost::beast::flat_buffer buffer_;

@@ -33,7 +33,7 @@ add_library(core
 
 target_include_directories(core
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/include
 )
 
 target_link_libraries(core
@@ -50,7 +50,7 @@ add_library(services
 
 target_include_directories(services
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/include
 )
 
 target_link_libraries(services
@@ -59,13 +59,16 @@ target_link_libraries(services
 )
 
 add_library(http
+    src/handlers/HashHandler.cpp
+    src/handlers/HealthHandler.cpp
+    src/handlers/PrimeHandler.cpp
     src/http/HttpSession.cpp
     src/http/HttpServer.cpp
 )
 
 target_include_directories(http
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/include
 )
 
 target_link_libraries(http

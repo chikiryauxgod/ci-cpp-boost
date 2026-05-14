@@ -30,6 +30,7 @@ int main() {
         std::make_shared<PrimeHandler>(prime_service));
     router.AddHandler(
         std::make_shared<HashHandler>(hash_service));
+        
     
     HttpServer server(ioc, config.port, router, config.body_limit_bytes);
     server.Run();
