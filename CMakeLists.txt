@@ -62,6 +62,7 @@ add_library(http
     src/handlers/HashHandler.cpp
     src/handlers/HealthHandler.cpp
     src/handlers/PrimeHandler.cpp
+    src/handlers/InfoHandler.cpp
     src/http/HttpSession.cpp
     src/http/HttpServer.cpp
 )

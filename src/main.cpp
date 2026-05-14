@@ -5,6 +5,7 @@
 #include "handlers/PrimeHandler.hpp"
 #include "handlers/HealthHandler.hpp"
 #include "handlers/HashHandler.hpp"
+#include "handlers/InfoHandler.hpp"
 #include <algorithm>
 #include <csignal>
 #include <thread>
@@ -30,7 +31,8 @@ int main() {
         std::make_shared<PrimeHandler>(prime_service));
     router.AddHandler(
         std::make_shared<HashHandler>(hash_service));
-        
+    router.AddHandler(std::make_shared<InfoHandler>());
+
     
     HttpServer server(ioc, config.port, router, config.body_limit_bytes);
     server.Run();
