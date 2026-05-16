@@ -46,6 +46,7 @@ target_link_libraries(core
 add_library(services
     src/services/HashService.cpp
     src/services/PrimeService.cpp
+    src/services/SortService.cpp
 )
 
 target_include_directories(services
@@ -63,6 +64,7 @@ add_library(http
     src/handlers/HealthHandler.cpp
     src/handlers/PrimeHandler.cpp
     src/handlers/InfoHandler.cpp
+    src/handlers/SortHandler.cpp
     src/http/HttpSession.cpp
     src/http/HttpServer.cpp
 )

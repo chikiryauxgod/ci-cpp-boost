@@ -2,10 +2,12 @@
 #include "http/HttpServer.hpp"
 #include "services/PrimeService.hpp"
 #include "services/HashService.hpp"
+#include "services/SortService.hpp"
 #include "handlers/PrimeHandler.hpp"
 #include "handlers/HealthHandler.hpp"
 #include "handlers/HashHandler.hpp"
 #include "handlers/InfoHandler.hpp"
+#include "handlers/SortHandler.hpp"
 #include <algorithm>
 #include <csignal>
 #include <thread>
@@ -24,6 +26,7 @@ int main() {
 
     auto hash_service = std::make_shared<HashService>();
     auto prime_service = std::make_shared<PrimeService>();
+    auto sort_service = std::make_shared<SortService>();
 
     Router router;
     router.AddHandler(std::make_shared<HealthHandler>());
@@ -32,6 +35,8 @@ int main() {
     router.AddHandler(
         std::make_shared<HashHandler>(hash_service));
     router.AddHandler(std::make_shared<InfoHandler>());
+    router.AddHandler(
+        std::make_shared<SortHandler>(sort_service));
 
     
     HttpServer server(ioc, config.port, router, config.body_limit_bytes);
