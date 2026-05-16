@@ -1,5 +1,6 @@
 #pragma once
-#include "IPrimeService.hpp"
+
+#include "services/IPrimeService.hpp"
 
 class PrimeService final : public IPrimeService {
 public:

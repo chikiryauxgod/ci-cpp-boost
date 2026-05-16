@@ -1,4 +1,4 @@
-#include "AppConfig.hpp"
+#include "core/AppConfig.hpp"
 
 #include <cstdlib>
 #include <limits>

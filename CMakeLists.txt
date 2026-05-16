@@ -29,11 +29,12 @@ find_package(Boost 1.74 REQUIRED COMPONENTS system json)
 add_library(core
     src/core/AppConfig.cpp
     src/core/Router.cpp
+    src/app/RouterBuilder.cpp
 )
 
 target_include_directories(core
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/include
 )
 
 target_link_libraries(core
@@ -46,15 +47,54 @@ target_link_libraries(core
 add_library(services
     src/services/HashService.cpp
     src/services/PrimeService.cpp
+    src/services/SortService.cpp
 )
 
 target_include_directories(services
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/include
 )
 
 target_link_libraries(services
     PUBLIC
+        project_warnings
+)
+
+add_library(handlers
+    src/handlers/HashHandler.cpp
+    src/handlers/HealthHandler.cpp
+    src/handlers/InfoHandler.cpp
+    src/handlers/PrimeHandler.cpp
+    src/handlers/SortHandler.cpp
+)
+
+target_include_directories(handlers
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+target_link_libraries(handlers
+    PUBLIC
+        core
+        Boost::json
+        project_warnings
+)
+
+add_library(factories
+    src/factories/DefaultHandlerFactory.cpp
+    src/factories/DefaultServiceFactory.cpp
+)
+
+target_include_directories(factories
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+target_link_libraries(factories
+    PUBLIC
+        core
+        handlers
+        services
         project_warnings
 )
 
@@ -65,7 +105,7 @@ add_library(http
 
 target_include_directories(http
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/include
 )
 
 target_link_libraries(http
@@ -75,14 +115,30 @@ target_link_libraries(http
         project_warnings
 )
 
+add_library(app
+    src/app/App.cpp
+)
+
+target_include_directories(app
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+target_link_libraries(app
+    PUBLIC
+        core
+        factories
+        http
+        project_warnings
+)
+
 add_executable(server
     src/main.cpp
 )
 
 target_link_libraries(server
     PRIVATE
-        http
-        services
+        app
 )
 
 find_package(Threads REQUIRED)
@@ -95,7 +151,10 @@ if(BUILD_TESTING)
 
     target_link_libraries(server_tests
         PRIVATE
+            app
             core
+            factories
+            handlers
             http
             services
             Threads::Threads
